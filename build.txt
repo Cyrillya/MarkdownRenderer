@@ -1,0 +1,3 @@
+displayName = Markdown Renderer
+author = Cyrilly
+version = 0.1
