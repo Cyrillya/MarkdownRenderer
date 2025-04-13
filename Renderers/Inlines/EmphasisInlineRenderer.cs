@@ -12,7 +12,13 @@ public class EmphasisInlineRenderer : ObjectRenderer<EmphasisInline>
         if (renderer == null) throw new ArgumentNullException(nameof(renderer));
         if (obj == null) throw new ArgumentNullException(nameof(obj));
 
-        var modifier = new EmphasisModifier();
+        EmphasisModifier modifier;
+
+        if (renderer.ModifiersStack.TryPeek(out var peakModifier) && peakModifier is EmphasisModifier)
+            modifier = peakModifier as EmphasisModifier;
+        else
+            modifier = new EmphasisModifier();
+
         switch (obj.DelimiterChar)
         {
             case '*':

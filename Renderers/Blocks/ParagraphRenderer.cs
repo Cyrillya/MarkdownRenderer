@@ -14,8 +14,8 @@ public class ParagraphRenderer : ObjectRenderer<ParagraphBlock>
     {
         if (renderer == null) throw new ArgumentNullException(nameof(renderer));
 
-        var paragraph = new ParagraphElement(renderer.Text);
-        renderer.Text.Blocks.Add(paragraph);
+        var paragraph = new ParagraphElement(renderer.Text, renderer.WorkingContainer);
+        renderer.WorkingContainer.AddBlock(paragraph);
         renderer.WriteLeafInline(obj);
     }
 }

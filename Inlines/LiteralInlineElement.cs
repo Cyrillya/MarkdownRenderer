@@ -7,49 +7,49 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Graphics;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.ID;
+using Terraria.ModLoader.UI;
 using Terraria.UI.Chat;
 
 namespace MarkdownRenderer.Inlines;
 
 public class LiteralInlineElement : BaseTextInline
 {
-    public const float ScriptScale = 0.5f;
+    public readonly float ScriptScale = 0.5f;
 
-    public int GlyphHeight => (int)(Font.Value.LineSpacing * 0.8f);
+    public int GlyphHeight => Font.Value.GetLineHeight();
 
     public override float ZoomScale
     {
         get
         {
-            EmphasisModifier emphasisModifier = null;
-            if (Modifiers is not null)
-            {
-                emphasisModifier = Modifiers.FirstOrDefault(i => i is EmphasisModifier) as EmphasisModifier;
-            }
+            EmphasisModifier emphasisModifier = GetEmphasisModifier();
 
             if (emphasisModifier != null && (emphasisModifier.IsSubscript || emphasisModifier.IsSuperscript))
             {
-                return Parent.ZoomScale * ScriptScale;
+                return ScriptScale;
             }
             else
             {
-                return Parent.ZoomScale;
+                return 1f;
             }
         }
     }
+
+    // To support scripts, height should not be affected by native zoom scale
+    public override int Height => (int)(TextSnippets.GetSnippetsSize(Font.Value).Y * ParentBlock.ZoomScale);
 
     public override void Draw(SpriteBatch spriteBatch, int x, int y)
     {
         var drawPosition = new Vector2(x, y);
         var snippetsArray = TextSnippets.ToArray();
-        var textColor = Parent.TextColor;
-        float textScale = Parent.Scale;
+        var textColor = ParentBlock.TextColor;
+        float textScale = ParentBlock.Scale;
 
-        EmphasisModifier emphasisModifier = null;
+        EmphasisModifier emphasisModifier = GetEmphasisModifier();
         HyperlinkModifier hyperlinkModifier = null;
         if (Modifiers is not null)
         {
-            emphasisModifier = Modifiers.FirstOrDefault(i => i is EmphasisModifier) as EmphasisModifier;
             hyperlinkModifier = Modifiers.FirstOrDefault(i => i is HyperlinkModifier) as HyperlinkModifier;
         }
 
@@ -60,16 +60,7 @@ public class LiteralInlineElement : BaseTextInline
             else
                 emphasisModifier = new EmphasisModifier() { IsInserted = true };
 
-            textColor = Color.Cyan;
-            var snippetsSize = TextHelper.GetSnippetsSize(TextSnippets, Font.Value).ToPoint();
-            var snippetsRectangle = new Rectangle(x, y, snippetsSize.X, snippetsSize.Y);
-            if (snippetsRectangle.Contains(Main.MouseScreen.ToPoint()) && Main.mouseLeft && Main.mouseLeftRelease)
-            {
-                if (hyperlinkModifier.IsAbsoluteLink)
-                    Utils.OpenToURL(hyperlinkModifier.Url);
-                else
-                    Parent.Parent.OnRelativeLinkClicked(hyperlinkModifier.Url);
-            }
+            textColor = ParentBlock.LinkColor;
         }
 
         if (emphasisModifier is not null)
@@ -78,13 +69,13 @@ public class LiteralInlineElement : BaseTextInline
             {
                 textScale *= ScriptScale;
                 // Scaling in vanilla drawing will automatically adjust the text to fit in the underline, so we need to manually adjust the position
-                drawPosition = new Vector2(x, y - GlyphHeight * 0.6f);
+                drawPosition = new Vector2(x, y);
             }
             else if (emphasisModifier.IsSubscript)
             {
                 textScale *= ScriptScale;
                 // Scaling in vanilla drawing will automatically adjust the text to fit in the underline, so we need to manually adjust the position
-                drawPosition = new Vector2(x, y - GlyphHeight * 0.2f);
+                drawPosition = new Vector2(x, y + GlyphHeight * 0.5f);
             }
         }
 
@@ -92,21 +83,28 @@ public class LiteralInlineElement : BaseTextInline
         {
             var snippetsSize = (TextHelper.GetSnippetsSize(TextSnippets, Font.Value) * textScale).ToPoint();
             var snippetsRectangle = new Rectangle((int)drawPosition.X, (int)drawPosition.Y, snippetsSize.X, snippetsSize.Y);
-            if (snippetsRectangle.Contains(Main.MouseScreen.ToPoint()))
+            if (ParentMarkdown.Interactable && snippetsRectangle.Contains(Main.MouseScreen.ToPoint()))
             {
+                // indicate that this can be clicked
+                Main.instance.MouseText($"[i:{ItemID.TitanGlove}]", 0, 0, Main.mouseX + 16, Main.mouseY - 10);
+                // hover feedback
                 textColor = textColor.MultiplyRGB(Color.LightGray);
+                // show title if there's any
+                if (!string.IsNullOrEmpty(hyperlinkModifier.Title))
+                    UICommon.TooltipMouseText(hyperlinkModifier.Title);
 
                 if (Main.mouseLeft && Main.mouseLeftRelease)
                 {
+                    Main.mouseLeftRelease = false;
                     if (hyperlinkModifier.IsAbsoluteLink)
                         Utils.OpenToURL(hyperlinkModifier.Url);
                     else
-                        Parent.Parent.OnRelativeLinkClicked(hyperlinkModifier.Url);
+                        ParentMarkdown.OnRelativeLinkClicked(hyperlinkModifier.Url);
                 }
             }
         }
 
-        DrawText(emphasisModifier, spriteBatch, Font.Value, snippetsArray, drawPosition, textColor, Parent.ShadowColor, Vector2.One * textScale, Parent.Spread);
+        DrawText(emphasisModifier, spriteBatch, Font.Value, snippetsArray, drawPosition, textColor, ParentBlock.ShadowColor, Vector2.One * textScale, ParentBlock.MarkdownElement.TextSpread);
     }
 
     private void TryDrawLine(EmphasisModifier modifier, SpriteBatch spriteBatch, Vector2 drawPosition, Color textColor, float textScale)
@@ -116,16 +114,16 @@ public class LiteralInlineElement : BaseTextInline
         Point snippetsSize = TextHelper.GetSnippetsSize(TextSnippets, Font.Value).ToPoint();
         int x = (int)drawPosition.X;
         int width = (int)(snippetsSize.X * textScale);
-        var texture = TextureAssets.MagicPixel.Value;
+        var texture = MarkdownRenderer.Pixel;
         if (modifier.IsStrikethrough) // delete line
         {
             int y = (int)(drawPosition.Y + GlyphHeight / 2 * textScale);
-            spriteBatch.Draw(texture, new Rectangle(x - 2, y, width + 2, 2), textColor);
+            spriteBatch.Draw(texture.Value, new Rectangle(x - 2, y, width + 2, 2), textColor);
         }
         if (modifier.IsInserted) // underline
         {
             int y = (int)(drawPosition.Y + GlyphHeight * textScale);
-            spriteBatch.Draw(texture, new Rectangle(x - 2, y, width + 2, 2), textColor);
+            spriteBatch.Draw(texture.Value, new Rectangle(x - 2, y, width + 2, 2), textColor);
         }
     }
 
@@ -137,9 +135,9 @@ public class LiteralInlineElement : BaseTextInline
         int x = (int)drawPosition.X;
         int y = (int)drawPosition.Y;
         int width = (int)(snippetsSize.X * textScale);
-        int height = (int)(GlyphHeight * textScale);
-        var texture = TextureAssets.MagicPixel.Value;
-        spriteBatch.Draw(texture, new Rectangle(x - 2, y - 2, width + 2, height + 2), Color.Yellow);
+        int height = (int)((GlyphHeight + 2) * textScale);
+        var texture = MarkdownRenderer.Pixel;
+        spriteBatch.Draw(texture.Value, new Rectangle(x - 2, y - 2, width + 4, height + 4), ParentBlock.HighlightColor);
     }
 
     public void DrawText(EmphasisModifier modifier, SpriteBatch spriteBatch, DynamicSpriteFont font, TextSnippet[] snippets, Vector2 position, Color baseColor, Color shadowColor, Vector2 baseScale, float spread = 2f)
@@ -148,8 +146,8 @@ public class LiteralInlineElement : BaseTextInline
         float x = position.X;
         float y = position.Y;
 
-        if (spread == 2f && baseScale.X <= 0.5f)
-            spread = 1f;
+        if (baseScale.X <= 0.5f && spread > 1.1f)
+            spread = (float)Math.Round(spread * baseScale.X);
 
         if (modifier != null)
         {
@@ -179,5 +177,29 @@ public class LiteralInlineElement : BaseTextInline
         }
 
         TextHelper.DrawColorCodedStringWithShadow(spriteBatch, font, snippets, drawPosition, baseColor, shadowColor, baseScale, spread);
+    }
+
+    /// <summary>
+    /// Gets the marged emphasis modifier from the modifiers array.
+    /// </summary>
+    /// <returns>An emphasis modifier containing all emphasis features</returns>
+    private EmphasisModifier GetEmphasisModifier()
+    {
+        var emphasisModifier = default(EmphasisModifier);
+
+        if (Modifiers is null) return emphasisModifier;
+
+        foreach (var modifier in Modifiers)
+        {
+            if (modifier is EmphasisModifier emphasis)
+            {
+                if (emphasisModifier is null)
+                    emphasisModifier = emphasis;
+                else
+                    emphasisModifier.Merge(emphasis);
+            }
+        }
+
+        return emphasisModifier;
     }
 }

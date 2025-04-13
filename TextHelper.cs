@@ -23,7 +23,7 @@ public static class TextHelper
 
     public static List<InlineContainer> WordwrapString(List<BaseMarkdownInline> originalInlines, BaseMarkdownBlock block)
     {
-        float maxWidth = block.Width / block.Scale;
+        float blockMaxWidth = block.Width / block.Scale;
         int longestWordLength = 19;
 
         int lineCount = 1; // 行数
@@ -44,14 +44,17 @@ public static class TextHelper
             // pop the inline
             pendingInline.Pop();
             // calculate the remaining space for this line
-            int remainingSpace = (int)(maxWidth - workingLineLength);
+            int remainingSpace = (int)(blockMaxWidth - workingLineLength);
 
             if (inline is BaseTextInline textInline)
             {
                 var font = textInline.Font.Value;
 
+                int lineMaxWidth = (int)blockMaxWidth;
+                remainingSpace = (int)(lineMaxWidth - workingLineLength);
+
                 // let TextSnippetWordwrapString decide wether to wrap
-                var output = ChopTextSnippet(textInline, font, remainingSpace, out int lineBreakSnippetIndex, longestWordLength);
+                var output = ChopTextSnippet(textInline, font, remainingSpace, lineMaxWidth, out int lineBreakSnippetIndex, longestWordLength);
 
                 // there's no line breaking
                 if (lineBreakSnippetIndex is -1)
@@ -102,7 +105,7 @@ public static class TextHelper
                 // if there is enough space for the whole inline, just add it to the current line
                 // otherwise add to the next line
                 // dont care if the block itself is big enough (blockWidth < inlineWidth who asked)
-                if (inline.Width + workingLineLength > maxWidth)
+                if (inline.Width > remainingSpace)
                 {
                     finalContainers.Add(workingLineContainer);
                     workingLineContainer = new InlineContainer(block);
@@ -128,7 +131,7 @@ public static class TextHelper
     /// 将一组TextSnippet切成两行，理论上这些TextSnippets内不包括换行符
     /// </summary>
     public static List<TextSnippet> ChopTextSnippet(BaseTextInline textInline, DynamicSpriteFont font,
-        int maxWidth, out int lineBreakSnippetIndex, int longestWordLength = 19)
+        int remainingSpace, int lineMaxWidth, out int lineBreakSnippetIndex, int longestWordLength = 19)
     {
         lineBreakSnippetIndex = -1;
         float workingLineLength = 0f; // 当前行长度
@@ -147,10 +150,12 @@ public static class TextHelper
                     GlyphMetrics characterMetrics = font.GetCharacterMetrics(snippet.Text[i]);
                     workingLineLength += (font.CharacterSpacing + characterMetrics.KernedWidth) * textInline.ZoomScale;
 
-                    if (workingLineLength > maxWidth && !char.IsWhiteSpace(snippet.Text[i]))
+                    if (workingLineLength > remainingSpace && !char.IsWhiteSpace(snippet.Text[i]))
                     {
                         // 如果第一个字符是空格，单词长度小于19（实际上是18因为第一个字符为空格），可以空格换行
                         bool canWrapWord = cacheString.Length > 1 && cacheString.Length < longestWordLength;
+                        // 如果行宽太小了，有可能这边换行之后，下一行还得换行，无限循环。因此单词长度不能超过行宽的0.9
+                        canWrapWord &= font.MeasureString(cacheString.ToString()).X <= lineMaxWidth * 0.9f;
 
                         // 找不到空格，或者拆腻子，则强制换行
                         if (!canWrapWord || (i > 0 && CanBreakBetween(snippet.Text[i - 1], snippet.Text[i])))
@@ -214,7 +219,7 @@ public static class TextHelper
                 float length = snippet.GetStringLength(font);
                 workingLineLength += length * textInline.ZoomScale;
                 // 超了 - 换行再添加，注意起始长度
-                if (workingLineLength > maxWidth)
+                if (workingLineLength > remainingSpace)
                 {
                     // 加入换行符
                     lineBreakSnippetIndex = finalSnippets.Count;
@@ -255,6 +260,9 @@ public static class TextHelper
         return false;
     }
 
+    public static Vector2 GetSnippetsSize(this TextSnippet[] snippets, DynamicSpriteFont font) =>
+        ChatManager.GetStringSize(font, snippets, Vector2.One);
+
     public static Vector2 GetSnippetsSize(this List<TextSnippet> snippets, DynamicSpriteFont font) =>
         ChatManager.GetStringSize(font, [.. snippets], Vector2.One);
 
@@ -274,4 +282,7 @@ public static class TextHelper
         DrawColorCodedStringShadow(spriteBatch, font, snippets, position, shadowColor, baseScale, spread, directions);
         return DrawColorCodedString(spriteBatch, font, snippets, position, baseColor, baseScale);
     }
+
+    public static int GetLineHeight(this DynamicSpriteFont font) => (int)(font.LineSpacing * 0.8f);
+    public static int GetLineGap(this DynamicSpriteFont font) => (int)(font.LineSpacing * 0.2f);
 }

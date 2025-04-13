@@ -11,10 +11,11 @@ public class LineBreakInlineRenderer : ObjectRenderer<LineBreakInline>
         if (renderer == null) throw new ArgumentNullException(nameof(renderer));
         if (obj == null) throw new ArgumentNullException(nameof(obj));
 
+        var workingBlock = renderer.WorkingContainer.GetWorkingBlock();
         var inline = new LineBreakInlineElement()
         {
-            Parent = renderer.Text.Blocks[^1],
+            ParentBlock = workingBlock,
         };
-        renderer.Text.Blocks[^1].AddInline(inline);
+        workingBlock.AddInline(inline);
     }
 }

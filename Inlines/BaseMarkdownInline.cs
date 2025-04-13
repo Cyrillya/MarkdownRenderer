@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MarkdownRenderer.BlockContainers;
 using MarkdownRenderer.Blocks;
 using MarkdownRenderer.Renderers.Inlines.Modifiers;
 using Microsoft.Xna.Framework.Graphics;
@@ -12,7 +13,9 @@ namespace MarkdownRenderer.Inlines;
 
 public abstract class BaseMarkdownInline : ICloneable
 {
-    public BaseMarkdownBlock Parent;
+    public BaseMarkdownBlock ParentBlock;
+    public BaseBlockContainer ParentContainer => ParentBlock.Parent;
+    public MarkdownText ParentMarkdown => ParentBlock.MarkdownElement;
     public IModifier[] Modifiers;
     public virtual int Height => 0;
     public virtual int Width => 0;
@@ -20,7 +23,7 @@ public abstract class BaseMarkdownInline : ICloneable
     public object Clone()
     {
         var clone = Activator.CreateInstance(GetType()) as BaseTextInline;
-        clone.Parent = Parent;
+        clone.ParentBlock = ParentBlock;
         clone.Modifiers = [.. Modifiers];
         return clone;
     }
@@ -32,25 +35,16 @@ public abstract class BaseTextInline : BaseMarkdownInline
 {
     public List<TextSnippet> TextSnippets = [];
 
-    public override int Height => (int)(TextSnippets.GetSnippetsSize(Font.Value).Y * Parent.ZoomScale * ZoomScale);
+    public override int Height => (int)(TextSnippets.GetSnippetsSize(Font.Value).Y * ParentBlock.ZoomScale * ZoomScale);
 
-    public override int Width => (int)(TextSnippets.GetSnippetsSize(Font.Value).X * Parent.ZoomScale * ZoomScale);
+    public override int Width => (int)(TextSnippets.GetSnippetsSize(Font.Value).X * ParentBlock.ZoomScale * ZoomScale);
 
     public virtual float ZoomScale => 1f;
 
     public bool HasLeadingLineWrap;
     public bool HasTrailingLineWrap;
 
-    public virtual Asset<DynamicSpriteFont> Font
-    {
-        get
-        {
-            if (Parent is HeadingElement)
-                return FontAssets.DeathText;
-
-            return FontAssets.MouseText;
-        }
-    }
+    public virtual Asset<DynamicSpriteFont> Font => ParentBlock.Font;
 
     public BaseTextInline()
     {

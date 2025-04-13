@@ -1,4 +1,5 @@
 using System;
+using MarkdownRenderer.BlockContainers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
@@ -8,7 +9,7 @@ using Terraria.UI.Chat;
 
 namespace MarkdownRenderer.Blocks;
 
-public class HeadingElement(MarkdownText parent) : BaseMarkdownBlock(parent)
+public class HeadingElement(MarkdownText text, BaseBlockContainer parent) : BaseMarkdownBlock(text, parent)
 {
     public override int SpacingY => 6;
     public int Level;
@@ -24,26 +25,18 @@ public class HeadingElement(MarkdownText parent) : BaseMarkdownBlock(parent)
         _ => 1f
     };
 
-    public override void Draw(SpriteBatch spriteBatch)
+    public override Asset<DynamicSpriteFont> Font => MarkdownElement.HeadingFont;
+
+    public override void Draw(SpriteBatch spriteBatch, Vector2 drawPosition)
     {
-        var drawPosition = DrawPosition;
         var textPosition = drawPosition;
-        // vanilla drawing is strange, have to add offset myself
-        if (Level != 1)
-        {
-            textPosition.Y -= 8 * Parent.Scale;
-        }
-        else
-        {
-            textPosition.Y += 4 * Parent.Scale;
-        }
 
         Lines.Draw(spriteBatch, textPosition, out Height);
 
         if (Level >= 3) return;
 
         int x = (int)drawPosition.X;
-        int y = (int)drawPosition.Y + Height;
+        int y = (int)drawPosition.Y + Height - (int)(4 * MarkdownElement.Scale);
         var texture = TextureAssets.MagicPixel.Value;
         spriteBatch.Draw(texture, new Rectangle(x, y, Width, 1), Color.Gray);
     }

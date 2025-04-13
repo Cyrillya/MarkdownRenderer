@@ -17,12 +17,13 @@ public class LiteralInlineRenderer : ObjectRenderer<LiteralInline>
         if (obj.Content.IsEmpty)
             return;
 
+        var workingBlock = renderer.WorkingContainer.GetWorkingBlock();
         var inline = new LiteralInlineElement()
         {
-            Parent = renderer.Text.Blocks[^1],
+            ParentBlock = workingBlock,
             TextSnippets = [.. TextHelper.GetTextSnippets(obj.Content.ToString())],
             Modifiers = [.. renderer.ModifiersStack]
         };
-        renderer.Text.Blocks[^1].AddInline(inline);
+        workingBlock.AddInline(inline);
     }
 }

@@ -27,20 +27,13 @@ public class LinkInlineRenderer : ObjectRenderer<LinkInline>
             var modifier = new HyperlinkModifier
             {
                 Url = obj.Url,
+                Title = obj.Title,
                 // determine if the link is absolute or relative
                 IsAbsoluteLink = Uri.IsWellFormedUriString(url, UriKind.Absolute)
             };
 
             renderer.ModifiersStack.Push(modifier);
-
-            var inline = new LiteralInlineElement()
-            {
-                Parent = renderer.Text.Blocks[^1],
-                TextSnippets = [.. TextHelper.GetTextSnippets(!string.IsNullOrEmpty(obj.Title) ? obj.Title : obj.Url)],
-                Modifiers = [.. renderer.ModifiersStack]
-            };
-            renderer.Text.Blocks[^1].AddInline(inline);
-
+            renderer.WriteContainerInline(obj);
             renderer.ModifiersStack.Pop();
         }
     }

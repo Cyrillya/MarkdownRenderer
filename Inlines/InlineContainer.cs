@@ -17,7 +17,7 @@ public class InlineContainer(BaseMarkdownBlock parent)
     {
         int inlineHeight = inline.Height;
         Height = Math.Max(Height, inlineHeight);
-        inline.Parent = Parent;
+        inline.ParentBlock = Parent;
         Inlines.Add(inline);
     }
 

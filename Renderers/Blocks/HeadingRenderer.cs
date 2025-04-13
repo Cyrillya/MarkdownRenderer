@@ -12,11 +12,11 @@ public class HeadingRenderer : ObjectRenderer<HeadingBlock>
     {
         if (renderer == null) throw new ArgumentNullException(nameof(renderer));
 
-        var paragraph = new HeadingElement(renderer.Text)
+        var paragraph = new HeadingElement(renderer.Text, renderer.WorkingContainer)
         {
             Level = obj.Level
         };
-        renderer.Text.Blocks.Add(paragraph);
+        renderer.WorkingContainer.AddBlock(paragraph);
         renderer.WriteLeafInline(obj);
     }
 }

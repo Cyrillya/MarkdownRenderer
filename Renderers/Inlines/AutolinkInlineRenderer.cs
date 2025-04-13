@@ -32,13 +32,14 @@ public class AutolinkInlineRenderer : ObjectRenderer<AutolinkInline>
 
         renderer.ModifiersStack.Push(modifier);
 
+        var workingBlock = renderer.WorkingContainer.GetWorkingBlock();
         var inline = new LiteralInlineElement()
         {
-            Parent = renderer.Text.Blocks[^1],
+            ParentBlock = workingBlock,
             TextSnippets = [.. TextHelper.GetTextSnippets(modifier.Url)],
             Modifiers = [.. renderer.ModifiersStack]
         };
-        renderer.Text.Blocks[^1].AddInline(inline);
+        workingBlock.AddInline(inline);
 
         renderer.ModifiersStack.Pop();
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Markdig.Syntax.Inlines;
+using MarkdownRenderer.BlockContainers;
 using MarkdownRenderer.Inlines;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -12,12 +13,25 @@ using Terraria.UI.Chat;
 
 namespace MarkdownRenderer.Blocks;
 
-public abstract class BaseMarkdownBlock(MarkdownText parent)
+public abstract class BaseMarkdownBlock
 {
-    public MarkdownText Parent = parent;
+    public BaseMarkdownBlock(MarkdownText text, BaseBlockContainer parent)
+    {
+        MarkdownElement = text;
+        Parent = parent;
+        Width = Parent.Width;
+        ShadowColor = Parent.ShadowColor;
+        TextColor = Parent.TextColor;
+        LinkColor = Parent.LinkColor;
+        HighlightColor = Parent.HighlightColor;
+        Initialize();
+    }
+
+    public MarkdownText MarkdownElement;
+    public BaseBlockContainer Parent;
     public int X;
     public int Y;
-    public int Width => Parent.MaxWidth;
+    public int Width;
     public int Height;
     public virtual int SpacingY => 8;
 
@@ -34,28 +48,36 @@ public abstract class BaseMarkdownBlock(MarkdownText parent)
         }
     }
 
-    public Vector2 DrawPosition
-    {
-        get
-        {
-            return new Vector2(X + Parent.X, Y + Parent.Y);
-        }
-    }
+    public virtual Asset<DynamicSpriteFont> Font => MarkdownElement.ParagraphFont;
 
-    public virtual Color ShadowColor => Parent.ShadowColor;
-    public virtual Color TextColor => Parent.TextColor;
-    public virtual float Scale => Parent.Scale * ZoomScale;
+    public virtual Color ShadowColor { get; set; }
+    public virtual Color TextColor { get; set; }
+    public virtual Color LinkColor { get; set; }
+    public virtual Color HighlightColor { get; set; }
+    public virtual float Scale => MarkdownElement.Scale * ZoomScale;
     public virtual float ZoomScale => 1f;
     public Vector2 ScaleVector => new Vector2(Scale);
-    public virtual float Spread => Parent.Spread;
 
     public List<BaseMarkdownInline> OriginalLines = [];
     public List<InlineContainer> Lines = [];
 
-    public abstract void Draw(SpriteBatch spriteBatch);
+    public abstract void Draw(SpriteBatch spriteBatch, Vector2 drawPosition);
 
     public void AddInline(BaseMarkdownInline inline)
     {
         OriginalLines.Add(inline);
     }
+
+    public virtual void Prepare()
+    {
+        if (OriginalLines.Count == 0)
+        {
+            return;
+        }
+
+        var inlineContainers = TextHelper.WordwrapString(OriginalLines, this);
+        Lines = inlineContainers;
+    }
+
+    public virtual void Initialize() { }
 }
