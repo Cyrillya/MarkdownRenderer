@@ -18,13 +18,10 @@ public class QuoteElement : BaseMarkdownBlock
 
     public override void Draw(SpriteBatch spriteBatch, Vector2 drawPosition)
     {
-        Height = 0;
         for (int i = 0; i < Container.Blocks.Count; i++)
         {
             var block = Container.Blocks[i];
-            block.Y = Height;
             block.Draw(spriteBatch, drawPosition + block.Position + new Vector2(Indent, 0));
-            Height += block.Height;
         }
 
         // indent indicator
@@ -41,10 +38,13 @@ public class QuoteElement : BaseMarkdownBlock
     public override void Prepare()
     {
         Container.Width = Parent.Width - Indent;
+        Height = 0;
         foreach (var block in Container.Blocks)
         {
             block.Width = Container.Width;
             block.Prepare();
+            block.Y = Height;
+            Height += block.Height;
         }
     }
 }

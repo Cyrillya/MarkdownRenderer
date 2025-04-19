@@ -11,6 +11,6 @@ public class ParagraphElement(MarkdownText text, BaseBlockContainer parent) : Ba
 {
     public override void Draw(SpriteBatch spriteBatch, Vector2 drawPosition)
     {
-        Lines.Draw(spriteBatch, drawPosition, out Height);
+        Lines.Draw(spriteBatch, drawPosition);
     }
 }

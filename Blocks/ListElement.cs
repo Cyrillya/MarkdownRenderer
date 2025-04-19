@@ -48,15 +48,12 @@ public class ListElement : BaseMarkdownBlock
 
     public override void Draw(SpriteBatch spriteBatch, Vector2 drawPosition)
     {
-        Height = 0;
         for (int i = 0; i < Container.Blocks.Count; i++)
         {
             // draw the block
             var block = Container.Blocks[i];
-            block.Y = Height;
             var finalBlockPosition = drawPosition + block.Position + new Vector2(Indent, 0);
             block.Draw(spriteBatch, finalBlockPosition);
-            Height += block.Height;
 
             // dont draw marker for sub-lists
             if (block is ListElement) continue;
@@ -97,16 +94,21 @@ public class ListElement : BaseMarkdownBlock
         discCenter.Y -= glyphHeight * 0.5f * Scale;
         discCenter.X -= radius;
         var drawRectangle = new Rectangle((int)(discCenter.X - radius), (int)(discCenter.Y - radius), (int)(radius * 2), (int)(radius * 2));
-        Main.spriteBatch.Draw(tex.Value, drawRectangle, TextColor);
+        var markerColor = TextColor.MultiplyRGB(TextColor * 0.94f);
+        Main.spriteBatch.Draw(tex.Value, drawRectangle, markerColor);
     }
 
     public override void Prepare()
     {
         Container.Width = Parent.Width - Indent;
+
+        Height = 0;
         foreach (var block in Container.Blocks)
         {
             block.Width = Container.Width;
             block.Prepare();
+            block.Y = Height;
+            Height += block.Height;
         }
     }
 }

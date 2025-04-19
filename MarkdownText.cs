@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Markdig.Syntax;
 using MarkdownRenderer.BlockContainers;
 using MarkdownRenderer.Blocks;
 using Microsoft.Xna.Framework;
@@ -50,11 +52,18 @@ public class MarkdownText : BaseBlockContainer
             return;
         }
 
+        int y = 0;
         foreach (var block in Blocks)
         {
             block.Width = Width;
+            block.Y = y;
+
             block.Prepare();
+
+            y += block.Height;
+            y += (int)(block.SpacingY * Scale);
         }
+
         PreparedToDraw = true;
     }
 
@@ -62,15 +71,17 @@ public class MarkdownText : BaseBlockContainer
     {
         PrepareToDraw();
 
-        int y = 0;
+        // int y = 0;
         foreach (var block in Blocks)
         {
-            block.Y = y;
+            // block.Y = y;
             block.Draw(spriteBatch, position + block.Position);
-            y += block.Height;
-            y += (int)(block.SpacingY * Scale);
+            // y += block.Height;
+            // y += (int)(block.SpacingY * Scale);
         }
     }
+
+    public int GetHeight() => Blocks.Sum(x => x.Height + (int)(x.SpacingY * Scale));
 
     public override void AddBlock(BaseMarkdownBlock block)
     {

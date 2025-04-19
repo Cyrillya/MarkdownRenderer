@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Markdig.Syntax.Inlines;
+using MarkdownRenderer;
 using MarkdownRenderer.BlockContainers;
 using MarkdownRenderer.Inlines;
 using Microsoft.Xna.Framework;
@@ -77,6 +78,7 @@ public abstract class BaseMarkdownBlock
 
         var inlineContainers = TextHelper.WordwrapString(OriginalLines, this);
         Lines = inlineContainers;
+        Height = Lines.GetTotalHeight();
     }
 
     public virtual void Initialize() { }

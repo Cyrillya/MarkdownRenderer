@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using MarkdownRenderer.Blocks;
 using MarkdownRenderer.Inlines;
 using Microsoft.Xna.Framework;
@@ -10,16 +11,15 @@ namespace MarkdownRenderer;
 
 public static class Extensions
 {
-    public static void Draw(this IList<InlineContainer> lines, SpriteBatch spriteBatch, Vector2 position, out int totalHeight)
+    public static void Draw(this IList<InlineContainer> lines, SpriteBatch spriteBatch, Vector2 position)
     {
-        totalHeight = 0;
         int y = (int)position.Y;
         foreach (var line in lines)
         {
             line.Draw(spriteBatch, (int)position.X, y);
             y += line.Height;
         }
-
-        totalHeight = y - (int)position.Y;
     }
+
+    public static int GetTotalHeight(this IList<InlineContainer> lines) => lines.Sum(x => x.Height);
 }

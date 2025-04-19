@@ -31,7 +31,7 @@ public class HeadingElement(MarkdownText text, BaseBlockContainer parent) : Base
     {
         var textPosition = drawPosition;
 
-        Lines.Draw(spriteBatch, textPosition, out Height);
+        Lines.Draw(spriteBatch, textPosition);
 
         if (Level >= 3) return;
 
